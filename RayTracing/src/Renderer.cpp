@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include <iostream>
 
 #include "Walnut/Random.h"
 
@@ -17,6 +18,37 @@ namespace Utils {
 		return result;
 	}
 
+	static uint32_t PCG_Hash(uint32_t input) {
+		uint32_t state = input * 747796405U + 2891336453U;
+		uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+		return (word >> 22u) ^ word;
+	}
+
+	static float RandomFloat(uint32_t& seed)
+	{
+		seed = PCG_Hash(seed);
+		return (float)seed / (float)UINT32_MAX;
+	}
+
+	static float RandomFloat(float min, float max, uint32_t& seed)
+	{
+		return RandomFloat(seed) * (max - min) + min;
+	}
+
+	static glm::vec3 InUnitSphere(uint32_t& seed)
+	{
+		return glm::normalize(glm::vec3(
+			RandomFloat(seed) * 2.0f - 1.0f,
+			RandomFloat(seed) * 2.0f - 1.0f,
+			RandomFloat(seed) * 2.0f - 1.0f
+			)
+		);
+	}
+
+	static glm::vec3 Vec3(float min, float max, uint32_t& seed)
+	{
+		return glm::vec3(RandomFloat(seed) * (max - min) + min, RandomFloat(seed) * (max - min) + min, RandomFloat(seed) * (max - min) + min);
+	}
 }
 
 void Renderer::OnResize(uint32_t width, uint32_t height)
@@ -110,27 +142,41 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 	glm::vec3 light(0.0f);
 	glm::vec3 contribution(1.0f);
 
+	uint32_t seed = x + y * m_FinalImage->GetWidth();
+	seed *= m_FrameIndex;
+
 	int bounces = 5;
 	for (int i = 0; i < bounces; i++)
 	{
+		seed += i;
+
 		Renderer::HitPayload payload = TraceRay(ray);
 		if (payload.HitDistance < 0.0f)
 		{
 			glm::vec3 skyColor = glm::vec3(0.6f, 0.7f, 0.9f);
-			//light += skyColor * contribution;
+			light += skyColor * contribution;
 			break;
 		}
 
 		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
 		const Material& material = m_ActiveScene->Materials[sphere.MaterialIndex];
 
-		contribution *= material.Albedo;
+		//contribution *= material.Albedo;
 		light += material.GetEmission();
 
 		ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
-		//ray.Direction = glm::reflect(ray.Direction,
-		//	payload.WorldNormal + material.Roughness * Walnut::Random::Vec3(-0.5f, 0.5f));
-		ray.Direction = glm::normalize(payload.WorldNormal + Walnut::Random::InUnitSphere());
+
+		glm::vec3 specularDir = ray.Direction = glm::reflect(ray.Direction,
+			payload.WorldNormal + material.Roughness * Utils::Vec3(-0.5f, 0.5f, seed));
+		glm::vec3 diffuse = ray.Direction = glm::normalize(payload.WorldNormal +  Utils::InUnitSphere(seed));
+		
+		bool isSpecularBounce = material.SpecularPower >= Utils::RandomFloat(0.0f, 1.0f, seed);
+
+
+		ray.Direction = glm::normalize(glm::mix(diffuse, specularDir, material.Metallic * isSpecularBounce));
+		contribution *= glm::mix(material.Albedo, material.SpecularColor, isSpecularBounce);
+		//std::cout << "contribution: " << contribution.x << " " << contribution.y << " " << contribution.z << std::endl;
+		
 	}
 
 	return glm::vec4(light, 1.0f);

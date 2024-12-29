@@ -25,11 +25,16 @@ public:
 		blueSphere.Albedo = { 0.2f, 0.3f, 1.0f };
 		blueSphere.Roughness = 0.1f;
 
+
 		Material& orangeSphere = m_Scene.Materials.emplace_back();
 		orangeSphere.Albedo = { 0.8f, 0.5f, 0.2f };
 		orangeSphere.Roughness = 0.1f;
 		orangeSphere.EmissionColor = orangeSphere.Albedo;
-		orangeSphere.EmissionPower = 2.0f;
+		orangeSphere.EmissionPower = 0.0f;
+
+		Material& whiteSphere = m_Scene.Materials.emplace_back();
+		whiteSphere.Albedo = { 0.8f, 0.8f, 0.8f };
+		whiteSphere.Roughness = 1.0f;
 
 		{
 			Sphere sphere;
@@ -41,9 +46,17 @@ public:
 
 		{
 			Sphere sphere;
-			sphere.Position = { 2.0f, 0.0f, 0.0f };
+			sphere.Position = { 4.0f, 0.0f, 0.0f };
 			sphere.Radius = 1.0f;
 			sphere.MaterialIndex = 2;
+			m_Scene.Spheres.push_back(sphere);
+		}
+
+		{
+			Sphere sphere;
+			sphere.Position = { 2.0f, 0.0f, 0.0f };
+			sphere.Radius = 1.0f;
+			sphere.MaterialIndex = 3;
 			m_Scene.Spheres.push_back(sphere);
 		}
 
@@ -54,6 +67,9 @@ public:
 			sphere.MaterialIndex = 1;
 			m_Scene.Spheres.push_back(sphere);
 		}
+		//load skybox.jpg file into SkyBoxData uint32_t array
+		Walnut::Image skyboxImage("res/textures/Sky.jpg");
+		skyboxImage
 	}
 
 	virtual void OnUpdate(float ts) override
@@ -79,7 +95,7 @@ public:
 		ImGui::End();
 
 		ImGui::Begin("Scene");
-		for (size_t i = 0; i < m_Scene.Spheres.size(); i++)
+		for (int i = 0; i < m_Scene.Spheres.size(); i++)
 		{
 			ImGui::PushID(i);
 
@@ -93,7 +109,7 @@ public:
 			ImGui::PopID();
 		}
 
-		for (size_t i = 0; i < m_Scene.Materials.size(); i++)
+		for (int i = 0; i < m_Scene.Materials.size(); i++)
 		{
 			ImGui::PushID(i);
 
@@ -101,6 +117,8 @@ public:
 			ImGui::ColorEdit3("Albedo", glm::value_ptr(material.Albedo));
 			ImGui::DragFloat("Roughness", &material.Roughness, 0.05f, 0.0f, 1.0f);
 			ImGui::DragFloat("Metallic", &material.Metallic, 0.05f, 0.0f, 1.0f);
+			ImGui::DragFloat("Specular Power", &material.SpecularPower, 0.01f, 0.0f, 1.0f);
+			ImGui::ColorEdit3("Specular Color", glm::value_ptr(material.SpecularColor));
 			ImGui::ColorEdit3("Emission Color", glm::value_ptr(material.EmissionColor));
 			ImGui::DragFloat("Emission Power", &material.EmissionPower, 0.05f, 0.0f, FLT_MAX);
 
@@ -114,8 +132,8 @@ public:
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::Begin("Viewport");
 
-		m_ViewportWidth = ImGui::GetContentRegionAvail().x;
-		m_ViewportHeight = ImGui::GetContentRegionAvail().y;
+		m_ViewportWidth = (uint32_t) ImGui::GetContentRegionAvail().x;
+		m_ViewportHeight = (uint32_t) ImGui::GetContentRegionAvail().y;
 
 		auto image = m_Renderer.GetFinalImage();
 		if (image)

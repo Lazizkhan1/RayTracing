@@ -4,6 +4,7 @@
 
 #include <vector>
 
+
 struct Material
 {
 	glm::vec3 Albedo{ 1.0f };
@@ -11,7 +12,8 @@ struct Material
 	float Metallic = 0.0f;
 	glm::vec3 EmissionColor{ 0.0f };
 	float EmissionPower = 0.0f;
-
+	glm::vec3 SpecularColor{ 1.0f };
+	float SpecularPower = 0.0f;
 	glm::vec3 GetEmission() const { return EmissionColor * EmissionPower; }
 };
 
@@ -23,8 +25,20 @@ struct Sphere
 	int MaterialIndex = 0;
 };
 
+struct SkyBox
+{
+	std::vector<uint32_t> SkyBoxData;
+	bool IsHDR = false;
+	bool IsLoaded = false;
+
+};
+
 struct Scene
 {
 	std::vector<Sphere> Spheres;
 	std::vector<Material> Materials;
+	SkyBox SkyBox;
 };
+
+
+
