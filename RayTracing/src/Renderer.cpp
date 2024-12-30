@@ -18,6 +18,25 @@ namespace Utils {
 		return result;
 	}
 
+	static glm::vec4 ConvertToVec4(uint32_t color)
+	{
+		uint8_t r = (color >> 16) & 0xFF;
+		uint8_t g = (color >> 8) & 0xFF;
+		uint8_t b = color & 0xFF;
+		uint8_t a = (color >> 24) & 0xFF;
+
+		return glm::vec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+	}
+
+	static glm::vec3 ConvertToVec3(uint32_t color)
+	{
+		uint8_t r = (color >> 16) & 0xFF;
+		uint8_t g = (color >> 8) & 0xFF;
+		uint8_t b = (color >> 0) & 0xFF;
+
+		return glm::vec3(r / 255.0f, g / 255.0f, b / 255.0f);
+	}
+
 	static uint32_t PCG_Hash(uint32_t input) {
 		uint32_t state = input * 747796405U + 2891336453U;
 		uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
@@ -48,6 +67,26 @@ namespace Utils {
 	static glm::vec3 Vec3(float min, float max, uint32_t& seed)
 	{
 		return glm::vec3(RandomFloat(seed) * (max - min) + min, RandomFloat(seed) * (max - min) + min, RandomFloat(seed) * (max - min) + min);
+	}
+
+	static glm::vec4 GetSkyColor(const SkyBox& skybox, const glm::vec3& direction) {
+		glm::vec4 defaultSkyColor(0.6f, 0.7f, 0.9f, 1.0f);
+		if (!skybox.IsLoaded)
+			return defaultSkyColor;
+		glm::vec3 normalDirection = glm::normalize(direction);
+		const float PI = 3.14159265358979323846264338327950288f;
+		float u = 0.5f + atan2(direction.z, direction.x) / (2.0f * PI);
+		float v = 0.5f - asin(direction.y) / PI;
+
+		int x = (int)(u * skybox.Width);
+		int y = (int)(v * skybox.Height);
+
+		if (x < 0) x = 0;
+		if (x >= skybox.Width) x = skybox.Width - 1;
+		if (y < 0) y = 0;
+		if (y >= skybox.Height) y = skybox.Height - 1;
+
+		return Utils::ConvertToVec4(skybox.SkyBoxData[x + y * skybox.Width]);
 	}
 }
 
@@ -139,8 +178,8 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 	ray.Origin = m_ActiveCamera->GetPosition();
 	ray.Direction = m_ActiveCamera->GetRayDirections()[x + y * m_FinalImage->GetWidth()];
 	
-	glm::vec3 light(0.0f);
-	glm::vec3 contribution(1.0f);
+	glm::vec4 light(0.0f, 0.0f, 0.0f, 1.0f);
+	glm::vec4 contribution(1.0f);
 
 	uint32_t seed = x + y * m_FinalImage->GetWidth();
 	seed *= m_FrameIndex;
@@ -149,17 +188,19 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 	for (int i = 0; i < bounces; i++)
 	{
 		seed += i;
-
 		Renderer::HitPayload payload = TraceRay(ray);
+
+		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+		const Material& material = m_ActiveScene->Materials[sphere.MaterialIndex];
+		const SkyBox& skybox = m_ActiveScene->SkyBox;
+
 		if (payload.HitDistance < 0.0f)
 		{
-			glm::vec3 skyColor = glm::vec3(0.6f, 0.7f, 0.9f);
+			glm::vec4 skyColor = Utils::GetSkyColor(skybox, ray.Direction);
 			light += skyColor * contribution;
 			break;
 		}
 
-		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
-		const Material& material = m_ActiveScene->Materials[sphere.MaterialIndex];
 
 		//contribution *= material.Albedo;
 		light += material.GetEmission();
@@ -179,7 +220,7 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 		
 	}
 
-	return glm::vec4(light, 1.0f);
+	return glm::vec4(light);
 }
 
 Renderer::HitPayload Renderer::TraceRay(const Ray& ray)

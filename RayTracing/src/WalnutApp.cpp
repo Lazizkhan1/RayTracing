@@ -20,22 +20,22 @@ public:
 		: m_Camera(45.0f, 0.1f, 100.0f)
 	{
 		Material& pinkSphere = m_Scene.Materials.emplace_back();
-		pinkSphere.Albedo = { 1.0f, 0.0f, 1.0f };
+		pinkSphere.Albedo = { 1.0f, 0.0f, 1.0f, 1.0f };
 		pinkSphere.Roughness = 0.0f;
 
 		Material& blueSphere = m_Scene.Materials.emplace_back();
-		blueSphere.Albedo = { 0.2f, 0.3f, 1.0f };
+		blueSphere.Albedo = { 0.2f, 0.3f, 1.0f, 1.0f };
 		blueSphere.Roughness = 0.1f;
 
 
 		Material& orangeSphere = m_Scene.Materials.emplace_back();
-		orangeSphere.Albedo = { 0.8f, 0.5f, 0.2f };
+		orangeSphere.Albedo = { 0.8f, 0.5f, 0.2f, 1.0f };
 		orangeSphere.Roughness = 0.1f;
 		orangeSphere.EmissionColor = orangeSphere.Albedo;
 		orangeSphere.EmissionPower = 0.0f;
 
 		Material& whiteSphere = m_Scene.Materials.emplace_back();
-		whiteSphere.Albedo = { 0.8f, 0.8f, 0.8f };
+		whiteSphere.Albedo = { 0.8f, 0.8f, 0.8f, 1.0f };
 		whiteSphere.Roughness = 1.0f;
 
 		{
@@ -70,7 +70,23 @@ public:
 			m_Scene.Spheres.push_back(sphere);
 		}
 		//load skybox.jpg file into SkyBoxData uint32_t array
+		SkyBox skybox;
+		m_Scene.SkyBox = skybox;
+		unsigned char* data = stbi_load("res\\skybox\\rosendal_plains_2_4k.hdr", &m_Scene.SkyBox.Width, &m_Scene.SkyBox.Height, &m_Scene.SkyBox.Channels, 4);
+		if (!data) {
+			std::cout << "Failed to load skybox image" << std::endl;
+		}
+		else {
+			std::vector<uint32_t> skyboxData(m_Scene.SkyBox.Width * m_Scene.SkyBox.Height);
 
+			for (int i = 0; i < m_Scene.SkyBox.Width * m_Scene.SkyBox.Height; i++) {
+				skyboxData[i] = data[i * 4 + 3] << 24 | (data[i * 4] << 16) | (data[i * 4 + 1] << 8) | data[i * 4 + 2];
+				//skyboxData[i] = (data[i * 3] << 16) | (data[i * 3 + 1] << 8) | data[i * 3 + 2];
+			}
+			stbi_image_free(data);
+			m_Scene.SkyBox.SkyBoxData = skyboxData;
+			m_Scene.SkyBox.IsLoaded = true;
+		}
 	}
 
 	virtual void OnUpdate(float ts) override
@@ -115,12 +131,12 @@ public:
 			ImGui::PushID(i);
 
 			Material& material = m_Scene.Materials[i];
-			ImGui::ColorEdit3("Albedo", glm::value_ptr(material.Albedo));
+			ImGui::ColorEdit4("Albedo", glm::value_ptr(material.Albedo));
 			ImGui::DragFloat("Roughness", &material.Roughness, 0.05f, 0.0f, 1.0f);
 			ImGui::DragFloat("Metallic", &material.Metallic, 0.05f, 0.0f, 1.0f);
 			ImGui::DragFloat("Specular Power", &material.SpecularPower, 0.01f, 0.0f, 1.0f);
-			ImGui::ColorEdit3("Specular Color", glm::value_ptr(material.SpecularColor));
-			ImGui::ColorEdit3("Emission Color", glm::value_ptr(material.EmissionColor));
+			ImGui::ColorEdit4("Specular Color", glm::value_ptr(material.SpecularColor));
+			ImGui::ColorEdit4("Emission Color", glm::value_ptr(material.EmissionColor));
 			ImGui::DragFloat("Emission Power", &material.EmissionPower, 0.05f, 0.0f, FLT_MAX);
 
 			ImGui::Separator();

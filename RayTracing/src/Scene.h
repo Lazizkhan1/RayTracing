@@ -7,14 +7,14 @@
 
 struct Material
 {
-	glm::vec3 Albedo{ 1.0f };
+	glm::vec4 Albedo{ 1.0f };
 	float Roughness = 1.0f;
 	float Metallic = 0.0f;
-	glm::vec3 EmissionColor{ 0.0f };
+	glm::vec4 EmissionColor{ 1.0f};
 	float EmissionPower = 0.0f;
-	glm::vec3 SpecularColor{ 1.0f };
+	glm::vec4 SpecularColor{ 1.0f };
 	float SpecularPower = 0.0f;
-	glm::vec3 GetEmission() const { return EmissionColor * EmissionPower; }
+	glm::vec4 GetEmission() const { return EmissionColor * EmissionPower; }
 };
 
 struct Sphere
@@ -27,6 +27,7 @@ struct Sphere
 
 struct SkyBox
 {
+	int Width = 0, Height = 0, Channels = 0;
 	std::vector<uint32_t> SkyBoxData;
 	bool IsHDR = false;
 	bool IsLoaded = false;
