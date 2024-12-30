@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 
 #include <vector>
-
+#include "stb_image.h"
 
 struct Material
 {

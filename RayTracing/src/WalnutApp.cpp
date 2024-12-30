@@ -9,6 +9,8 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+
 using namespace Walnut;
 
 class ExampleLayer : public Walnut::Layer
@@ -68,8 +70,7 @@ public:
 			m_Scene.Spheres.push_back(sphere);
 		}
 		//load skybox.jpg file into SkyBoxData uint32_t array
-		Walnut::Image skyboxImage("res/textures/Sky.jpg");
-		skyboxImage
+
 	}
 
 	virtual void OnUpdate(float ts) override
