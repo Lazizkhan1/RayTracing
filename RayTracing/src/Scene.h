@@ -4,6 +4,7 @@
 
 #include <vector>
 #include "stb_image.h"
+#include <iostream>
 
 struct Material
 {
@@ -32,13 +33,33 @@ struct SkyBox
 	bool IsHDR = false;
 	bool IsLoaded = false;
 
+	SkyBox(const char* filename) {
+		if (filename == nullptr)
+			return;
+
+		unsigned char* data = stbi_load(filename, &Width, &Height, &Channels, 4);
+		if (!data) {
+			std::cout << "Failed to load skybox image" << std::endl;
+		}
+		else {
+			std::vector<uint32_t> skyboxData(Width * Height);
+
+			for (int i = 0; i < Width * Height; i++) {
+				skyboxData[i] = data[i * 4 + 3] << 24 | (data[i * 4] << 16) | (data[i * 4 + 1] << 8) | data[i * 4 + 2];
+			}
+			stbi_image_free(data);
+			SkyBoxData = skyboxData;
+			IsLoaded = true;
+		}
+	}
+
 };
 
 struct Scene
 {
 	std::vector<Sphere> Spheres;
 	std::vector<Material> Materials;
-	SkyBox SkyBox;
+	SkyBox SkyBox = nullptr;
 };
 
 
